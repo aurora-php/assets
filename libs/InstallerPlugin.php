@@ -50,6 +50,9 @@ class InstallerPlugin implements PluginInterface, EventSubscriberInterface
             ),
             ScriptEvents::POST_PACKAGE_INSTALL => array(
                 array('onPostInstall', 0)
+            ),
+            ScriptEvents::POST_PACKAGE_UNINSTALL => array(
+                array('onPostUninstall', 0)
             )
         );
     }
@@ -60,5 +63,13 @@ class InstallerPlugin implements PluginInterface, EventSubscriberInterface
     public function onPostInstall(PackageEvent $event)
     {
         $this->installer->install($event);
+    }
+    
+    /**
+     * Execute uninstaller.
+     */
+    public function onPostUninstall(PackageEvent $event)
+    {
+        // TODO
     }
 }
