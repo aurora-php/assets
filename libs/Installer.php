@@ -35,6 +35,11 @@ class Installer
     const NS_ASSETS = 'assets';
 
     /**
+     * Instance of composer.
+     */
+    protected $composer;
+
+    /**
      * Assets directories.
      */
     protected $assets_dirs = array();
@@ -44,6 +49,7 @@ class Installer
      */
     public function __construct($composer, $io)
     {
+        $this->composer = $composer;
         $this->package = $composer->getPackage();
         $extra = $this->package->getExtra();
 
@@ -54,5 +60,13 @@ class Installer
         }
         
         var_dump($this->assets_dir);
+    }
+    
+    /**
+     * Install assets.
+     */
+    public function install()
+    {
+        return $this;
     }
 }
