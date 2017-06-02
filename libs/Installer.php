@@ -151,6 +151,39 @@ class Installer
     }
 
     /**
+     * Uninstall assets of a package.
+     */
+    public function uninstall(PackageEvent $event)
+    {
+    }
+
+    /**
+     * Cleanup asset directory, remove links pointing nowhere.
+     */
+    public function cleanup()
+    {
+        $this->log(self::LOG_INFO, 'Cleanup asset directories');
+
+        foreach ($this->assets_dirs as $ns => $dir) {
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->root_path . '/' . $dir));
+
+            foreach ($iterator as $object) {
+                if ($object->isLink()) {
+                    $target_path = (string)$object;
+                    $link_path = readlink($target_path);
+
+                    if (!file_exists($link_path)) {
+                        $this->log(self::LOG_CUSTOM, sprintf('  - Removing unresolved path <info>%s</info>', $target_path));
+                        if (!unlink($target_path)) {
+                            $this->log(self::LOG_ERROR, 'Unable to remove unresolved path "%s" -> "%s".', $link_path, $target_path);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Log status messages.
      */
     protected function log($type, $message)
