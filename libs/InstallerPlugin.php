@@ -15,7 +15,7 @@ use Composer\Composer;
 use Composer\Plugin\PluginInterface;
 use Composer\IO\IOInterface;
 use Composer\EventDispatcher\EventSubscriberInterface;
-use Composer\Script\Event;
+use Composer\Installer\PackageEvent;
 use Composer\Script\ScriptEvents;
 
 /**
@@ -40,15 +40,15 @@ class InstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
     
     /**
-     * Subscribe installer to events of UPDATE and INSTALL command.
+     * Subscribe installer to required events.
      */
     public static function getSubscribedEvents()
     {
         return array(
-            ScriptEvents::POST_UPDATE_CMD => array(
+            ScriptEvents::POST_PACKAGE_UPDATE => array(
                 array('onPostInstall', 0)
             ),
-            ScriptEvents::POST_INSTALL_CMD => array(
+            ScriptEvents::POST_PACKAGE_INSTALL => array(
                 array('onPostInstall', 0)
             )
         );
@@ -57,8 +57,8 @@ class InstallerPlugin implements PluginInterface, EventSubscriberInterface
     /**
      * Execute installer.
      */
-    public function onPostInstall(Event $event)
+    public function onPostInstall(PackageEvent $event)
     {
-        $this->installer->install();
+        $this->installer->install($event);
     }
 }
