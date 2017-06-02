@@ -22,7 +22,7 @@ use Composer\Package;
  * @copyright   copyright (c) 2017 by Harald Lapp
  * @author      Harald Lapp <harald@octris.org>
  */
-class Installer implements PluginInterface
+class Installer
 {
     /**
      * Namespace of extra field of composer.json for asset configuration.
@@ -52,5 +52,7 @@ class Installer implements PluginInterface
                                     ? $extra[self::NS_EXTRA]['target']
                                     : array(self::NS_ASSETS => $extra[self::NS_EXTRA]['target']));
         }
+        
+        var_dump($this->assets_dir);
     }
 }
