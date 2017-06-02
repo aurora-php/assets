@@ -16,6 +16,7 @@ use Composer\Plugin\PluginInterface;
 use Composer\IO\IOInterface;
 use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\Installer\PackageEvent;
+use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 
 /**
@@ -30,7 +31,7 @@ class InstallerPlugin implements PluginInterface, EventSubscriberInterface
      * Instance of assets installer.
      */
     protected $installer;
-    
+
     /**
      * Activate plugin.
      */
@@ -38,7 +39,7 @@ class InstallerPlugin implements PluginInterface, EventSubscriberInterface
     {
         $this->installer = new Installer($composer, $io);
     }
-    
+
     /**
      * Subscribe installer to required events.
      */
@@ -46,13 +47,19 @@ class InstallerPlugin implements PluginInterface, EventSubscriberInterface
     {
         return array(
             ScriptEvents::POST_PACKAGE_UPDATE => array(
-                array('onPostInstall', 0)
+                array('onPostPackageInstall', 0)
             ),
             ScriptEvents::POST_PACKAGE_INSTALL => array(
-                array('onPostInstall', 0)
+                array('onPostPackageInstall', 0)
             ),
             ScriptEvents::POST_PACKAGE_UNINSTALL => array(
-                array('onPostUninstall', 0)
+                array('onPostPackageUninstall', 0)
+            ),
+            ScriptEvents::POST_UPDATE_CMD => array(
+                array('onPostInstall', 0)
+            ),
+            ScriptEvents::POST_INSTALL_CMD => array(
+                array('onPostInstall', 0)
             )
         );
     }
@@ -60,16 +67,24 @@ class InstallerPlugin implements PluginInterface, EventSubscriberInterface
     /**
      * Execute installer.
      */
-    public function onPostInstall(PackageEvent $event)
+    public function onPostPackageInstall(PackageEvent $event)
     {
         $this->installer->install($event);
     }
-    
+
     /**
      * Execute uninstaller.
      */
-    public function onPostUninstall(PackageEvent $event)
+    public function onPostPackageUninstall(PackageEvent $event)
     {
-        // TODO
+        $this->installer->uninstall($event);
+    }
+
+    /**
+     * Execute cleanup.
+     */
+    public function onPostInstall(Event $event)
+    {
+        $this->installer->cleanup();
     }
 }
