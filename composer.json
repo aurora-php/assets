@@ -1,0 +1,29 @@
+{
+    "name":         "octris/assets",
+    "type":         "composer-plugin",
+    "description":  "Installer for octris package assets.",
+    "keywords":     [],
+    "homepage":     "https://github.com/octris/assets",
+    "license":      "proprietary",
+
+    "authors":      [{
+        "name":         "Harald Lapp",
+        "email":        "harald@octris.org",
+        "homepage":     "http://www.octris.org/"
+    }],
+
+    "require":      {
+        "php":          ">=5.6.0",
+        "composer-plugin-api": "^1.0"
+    },
+
+    "autoload":     {
+        "psr-4":        {
+            "Octris\\Assets\\": "libs/"
+        }
+    },
+    
+    "extra": {
+        "class": "Octris\\Assets\\InstallerPlugin"
+    }
+}
