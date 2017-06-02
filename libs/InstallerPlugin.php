@@ -26,13 +26,22 @@ use Composer\Script\ScriptEvents;
  */
 class InstallerPlugin implements PluginInterface, EventSubscriberInterface
 {
+    /**
+     * Instance of assets installer.
+     */
     protected $installer;
     
+    /**
+     * Activate plugin.
+     */
     public function activate(Composer $composer, IOInterface $io)
     {
         $this->installer = new Installer($composer, $io);
     }
     
+    /**
+     * Subscribe installer to events of UPDATE and INSTALL command.
+     */
     public static function getSubscribedEvents()
     {
         return array(
@@ -45,6 +54,9 @@ class InstallerPlugin implements PluginInterface, EventSubscriberInterface
         );
     }
 
+    /**
+     * Execute installer.
+     */
     public function onPostInstall(Event $event)
     {
         $this->installer->install();
