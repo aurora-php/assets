@@ -31,6 +31,7 @@ class Installer
     const LOG_INFO = 1;
     const LOG_WARNING = 2;
     const LOG_ERROR = 3;
+    const LOG_CUSTOM = 4;
 
     /**
      * Namespace of extra field of composer.json for asset configuration.
@@ -83,8 +84,6 @@ class Installer
                                     ? $extra[self::NS_EXTRA]['target']
                                     : array(self::NS_ASSETS => $extra[self::NS_EXTRA]['target']));
         }
-
-        var_dump([$this->assets_dirs]);
     }
 
     /**
@@ -116,11 +115,36 @@ class Installer
 
             foreach ($source_dirs as $ns => $dir) {
                 $target_path = $this->root_path . '/' . $this->assets_dirs[$ns] . '/' . $package_name;
+                $target_dir = dirname($target_path);
 
-                print $target_path;
+                if (!is_dir($target_dir)) {
+                    if (!mkdir($target_dir, 0777, true)) {
+                        $this->log(self::LOG_ERROR, sprintf('%s: unable to create target directory "%s".', $package_name, $target_dir));
+                        continue;
+                    }
+                }
+
+                $source_path = $package_path . '/' . $dir;
+
+                $this->log(self::LOG_CUSTOM, sprintf('  - Installing asset <info>%s/%s</info>', $package_name, $dir));
+
+                if (is_link($target_path)) {
+                    $link_path = readlink($target_path);
+
+                    if ($link_path == $target_path) {
+                        continue;
+                    }
+
+                    if (!unlink($target_path)) {
+                        $this->log(self::LOG_ERROR, '%s: unable to update link to asset "%s" -> "%s".', $package_name, $source_path, $target_path);
+                        continue;
+                    }
+                }
+
+                if (!symlink($source_path, $target_path)) {
+                    $this->log(self::LOG_ERROR, sprintf('%s: unable to create link to asset "%s" -> "%s".', $package_name, $source_path, $target_path));
+                }
             }
-
-            var_dump($source_dirs);
         }
 
         return $this;
@@ -140,6 +164,9 @@ class Installer
                 break;
             case self::LOG_ERROR:
                 $this->io->write(array('<error>' . $message . '</error>'));
+                break;
+            case self::LOG_CUSTOM:
+                $this->io->write(array($message));
                 break;
         }
     }
