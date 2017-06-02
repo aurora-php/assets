@@ -16,7 +16,7 @@ use Composer\Json\JsonFile;
 use Composer\IO\IOInterface;
 use Composer\Package;
 
-* /**
+/**
  * Assets installer.
  *
  * @copyright   copyright (c) 2017 by Harald Lapp
@@ -24,12 +24,33 @@ use Composer\Package;
  */
 class Installer implements PluginInterface
 {
-    const LABEL_ASSETS = 'octris:assets';
-    
+    /**
+     * Namespace of extra field of composer.json for asset configuration.
+     */
+    const NS_EXTRA = 'octris/assets';
+
+    /**
+     * Default assets namespace.
+     */
+    const NS_ASSETS = 'assets';
+
+    /**
+     * Assets directories.
+     */
+    protected $assets_dirs = array();
+
     /**
      * Constructor.
      */
     public function __construct($composer, $io)
     {
+        $this->package = $composer->getPackage();
+        $extra = $this->package->getExtra();
+
+        if (isset($extra[self::NS_EXTRA]) && isset($extra[self::NS_EXTRA]['target'])) {
+            $this->assets_dir = (is_array($extra[self::NS_EXTRA]['target'])
+                                    ? $extra[self::NS_EXTRA]['target']
+                                    : array(self::NS_ASSETS => $extra[self::NS_EXTRA]['target']));
+        }
     }
 }
