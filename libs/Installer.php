@@ -103,7 +103,7 @@ class Installer
                                 ? $extra[self::NS_EXTRA]['source']
                                 : array(self::NS_ASSETS => $extra[self::NS_EXTRA]['source']));
 
-            $source_dirs = array_filter($source_dirs, function($dir, $ns) use ($package_path) {
+            $source_dirs = array_filter($source_dirs, function($dir, $ns) use ($package_path, $package_name) {
                 if (!($return = isset($this->assets_dirs[$ns]))) {
                     $this->log(self::LOG_WARNING, sprintf('%s: namespace not defined in root package "%s".', $package_name, $ns));
                 } elseif (!($return = is_dir($package_path . '/' . $dir))) {
