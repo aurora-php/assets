@@ -165,6 +165,10 @@ class Installer
         $this->log(self::LOG_INFO, 'Cleanup asset directories');
 
         foreach ($this->assets_dirs as $ns => $dir) {
+            if (!is_dir($this->root_path . '/' . $dir)) {
+                continue;
+            }
+
             $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->root_path . '/' . $dir));
 
             foreach ($iterator as $object) {
