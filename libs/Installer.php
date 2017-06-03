@@ -87,11 +87,34 @@ class Installer
     }
 
     /**
+     * Return package instance.
+     */
+    protected function getPackage(PackageEvent $event)
+    {
+        $operation = $event->getOperation();
+
+        if ($operation instanceof \Composer\DependencyResolver\Operation\InstallOperation) {
+            $package = $operation->getPackage();
+        } elseif ($operation instanceof \Composer\DependencyResolver\Operation\UpdateOperation) {
+            $package = $operation->getInitialPackage();
+        } else {
+            $package = false;
+        }
+
+        return $package;
+    }
+
+    /**
      * Install assets for a package.
      */
     public function install(PackageEvent $event)
     {
-        $package = $event->getOperation()->getPackage();
+        if (!($package = $this->getPackage($event))) {
+            $this->log(LOG_ERROR, 'Internal error -- unable to handle event operation.');
+
+            return $this;
+        }
+
         $extra = $package->getExtra();
 
         if (isset($extra[self::NS_EXTRA]) && isset($extra[self::NS_EXTRA]['source'])) {
