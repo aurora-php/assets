@@ -96,7 +96,7 @@ class Installer
         if ($operation instanceof \Composer\DependencyResolver\Operation\InstallOperation) {
             $package = $operation->getPackage();
         } elseif ($operation instanceof \Composer\DependencyResolver\Operation\UpdateOperation) {
-            $package = $operation->getInitialPackage();
+            $package = $operation->getTargetPackage();
         } else {
             $package = false;
         }
