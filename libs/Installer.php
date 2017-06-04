@@ -79,29 +79,73 @@ class Installer
         $package = $composer->getPackage();
         $extra = $package->getExtra();
 
-        if (isset($extra[self::NS_EXTRA]) && isset($extra[self::NS_EXTRA]['target'])) {
-            $this->assets_dirs = (is_array($extra[self::NS_EXTRA]['target'])
-                                    ? $extra[self::NS_EXTRA]['target']
-                                    : array(self::NS_ASSETS => $extra[self::NS_EXTRA]['target']));
+        $this->assets_dir = $this->getDirectories('target');
+    }
+
+    /**
+     * Get configured directories for specified configuration key.
+     */
+    protected function getDirectories(PackageInterface $package, $key)
+    {
+        $extra = $package->getExtra();
+
+        $dirs = (isset($extra[self::NS_EXTRA]) && isset($extra[self::NS_EXTRA]['target'])
+                    ? (is_array($extra[self::NS_EXTRA]['target'])
+                        ? $extra[self::NS_EXTRA]['target']
+                        : array(self::NS_ASSETS => $extra[self::NS_EXTRA]['target']))
+                    : array());
+
+        $dirs = array_filter(
+            $dirs,
+            function($dir) {
+                return is_string($dir);
+            }
+        );
+
+        return $dirs;
+    }
+
+    /**
+     * Handle assets for updated package.
+     */
+    public function updatePackage(PackageEvent $event)
+    {
+        $operation = $event->getOperation();
+
+        $old_pkg = $operation->getInitialPackage();
+        $new_pkg = $operation->getTargetPackage();
+
+        // remove assets that not longer required
+        $old_dirs = $this->getDirectories($old_pkg, 'source');
+        $new_dirs = $this->getDirectories($new_pkg, 'source');
+
+        $remove_dirs = array_filter(
+            $old_dirs,
+            function($dir, $ns) use ($new_dirs, $old_pkg) {
+                if (!($return = isset($this->assets_dirs[$ns]))) {
+                    $this->log(self::LOG_WARNING, sprintf('%s: namespace not defined in root package "%s".', $old_pkg->getName(), $ns));
+                } else {
+                    $return = (array_search($dir, $new_dirs) === false);
+                }
+
+                return $return;
+            },
+            ARRAY_FILTER_USE_BOTH
+        );
+
+        foreach ($remove_dirs as $ns => $dir) {
+
         }
     }
 
     /**
-     * Return package instance.
+     * Handle assets for installed package.
      */
-    protected function getPackage(PackageEvent $event)
+    public function installPackage(PackageEvent $event)
     {
         $operation = $event->getOperation();
 
-        if ($operation instanceof \Composer\DependencyResolver\Operation\InstallOperation) {
-            $package = $operation->getPackage();
-        } elseif ($operation instanceof \Composer\DependencyResolver\Operation\UpdateOperation) {
-            $package = $operation->getTargetPackage();
-        } else {
-            $package = false;
-        }
-
-        return $package;
+        $package = $operation->getPackage();
     }
 
     /**
@@ -109,22 +153,14 @@ class Installer
      */
     public function install(PackageEvent $event)
     {
-        if (!($package = $this->getPackage($event))) {
-            $this->log(LOG_ERROR, 'Internal error -- unable to handle event operation.');
-
-            return $this;
-        }
-
         $extra = $package->getExtra();
 
-        if (isset($extra[self::NS_EXTRA]) && isset($extra[self::NS_EXTRA]['source'])) {
+        $source_dirs = $this->getDirectories('source');
+
+        if (count($source_dirs) > 0) {
             // installed/updated package has assets to install
             $package_path = $event->getComposer()->getInstallationManager()->getInstallPath($package);
             $package_name = $package->getName();
-
-            $source_dirs = (is_array($extra[self::NS_EXTRA]['source'])
-                                ? $extra[self::NS_EXTRA]['source']
-                                : array(self::NS_ASSETS => $extra[self::NS_EXTRA]['source']));
 
             $source_dirs = array_filter($source_dirs, function($dir, $ns) use ($package_path, $package_name) {
                 if (!($return = isset($this->assets_dirs[$ns]))) {

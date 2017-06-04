@@ -47,7 +47,7 @@ class InstallerPlugin implements PluginInterface, EventSubscriberInterface
     {
         return array(
             ScriptEvents::POST_PACKAGE_UPDATE => array(
-                array('onPostPackageInstall', 0)
+                array('onPostPackageUpdate', 0)
             ),
             ScriptEvents::POST_PACKAGE_INSTALL => array(
                 array('onPostPackageInstall', 0)
@@ -64,12 +64,14 @@ class InstallerPlugin implements PluginInterface, EventSubscriberInterface
         );
     }
 
-    /**
-     * Execute installer.
-     */
+    public function onPostPackageUpdate(PackageEvent $event)
+    {
+        $this->installer->updatePackage($event);
+    }
+
     public function onPostPackageInstall(PackageEvent $event)
     {
-        $this->installer->install($event);
+        $this->installer->installPackage($event);
     }
 
     /**
