@@ -250,11 +250,11 @@ class Installer
                         $this->log(self::LOG_ERROR, 'Unable to update link to asset "%s" -> "%s".', $source_path, $target_path);
                         continue;
                     }
+                }
 
-                    if (!symlink($source_path, $target_path)) {
-                        $this->log(self::LOG_ERROR, 'Unable to create link to asset "%s" -> "%s".', $source_path, $target_path);
-                    }
-                }                
+                if (!symlink($source_path, $target_path)) {
+                    $this->log(self::LOG_ERROR, 'Unable to create link to asset "%s" -> "%s".', $source_path, $target_path);
+                }
             }
         }
     }
