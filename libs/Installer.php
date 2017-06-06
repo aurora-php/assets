@@ -230,7 +230,7 @@ class Installer
                 $target_path = $this->root_path . '/' . $this->assets_dirs[$ns] . '/' . $package_name;
                 $target_dir = dirname($target_path);
                 
-                $this->log(self::LOG_CUSTOM, 'Installing asset <info>%s/%s</info>', $package_name, $dir);
+                $this->log(self::LOG_CUSTOM, '  - Installing asset <info>%s/%s</info>', $package_name, $dir);
 
                 if (!is_dir($target_dir)) {
                     if (!mkdir($target_dir, 0777, true)) {
@@ -264,7 +264,7 @@ class Installer
      */
     public function cleanup()
     {
-        $this->log(self::LOG_INFO, 'Cleanup asset directories');
+        $this->log(self::LOG_CUSTOM, '<info>Cleanup asset directories</info>');
 
         foreach ($this->assets_dirs as $ns => $dir) {
             if (!is_dir($this->root_path . '/' . $dir)) {
@@ -285,14 +285,16 @@ class Installer
                     $link_path = readlink($target_path);
 
                     if (!file_exists($link_path)) {
-                        $this->log(self::LOG_CUSTOM, 'Removing unresolved path <info>%s</info>', $target_path);
+                        $this->log(self::LOG_CUSTOM, '  - Removing unresolved path <info>%s</info>', $target_path);
                         
                         if (!unlink($target_path)) {
                             $this->log(self::LOG_ERROR, 'Unable to remove unresolved path "%s" -> "%s".', $link_path, $target_path);
                         }
                     }
                 } elseif ($object->isDir()) {
-                    if (count(glob('{,.}*', GLOB_BRACE | GLOB_NOSORT)) == 0) {
+                    if (count(glob((string)$object . '/{,.}*', GLOB_BRACE | GLOB_NOSORT)) == 0) {
+                        $this->log(self::LOG_CUSTOM, '  - Removing empty directory <info>%s</info>', (string)$object);
+                                                
                         if (!rmdir((string)$object)) {
                             $this->log(self::LOG_WARNING, 'Unable to remove empty directory "%s".', (string)$object);
                         }
@@ -318,7 +320,7 @@ class Installer
                 $this->io->write(array('<error>  ! ' . sprintf($message, ...$args) . '</error>'));
                 break;
             case self::LOG_CUSTOM:
-                $this->io->write(array('  - ' . sprintf($message, ...$args)));
+                $this->io->write(array(sprintf($message, ...$args)));
                 break;
         }
     }
