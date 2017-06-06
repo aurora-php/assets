@@ -79,7 +79,7 @@ class InstallerPlugin implements PluginInterface, EventSubscriberInterface
      */
     public function onPostPackageUninstall(PackageEvent $event)
     {
-        $this->installer->uninstall($event);
+        $this->installer->uninstallPackage($event);
     }
 
     /**

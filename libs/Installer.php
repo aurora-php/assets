@@ -79,29 +79,51 @@ class Installer
         $package = $composer->getPackage();
         $extra = $package->getExtra();
 
-        $this->assets_dir = $this->getDirectories('target');
+        $this->assets_dirs = $this->getDirectories('target', $extra);
     }
 
     /**
-     * Get configured directories for specified configuration key.
+     * Extract and normalize array of directories from package configuration.
+     * 
+     * @param   string  $type                   Type of directories.
+     * @param   array   $extra                  Package configuration.
+     * @return  array                           Extracted directories.
      */
-    protected function getDirectories(PackageInterface $package, $key)
+    protected function getDirectories($type, array $extra)
     {
-        $extra = $package->getExtra();
-
-        $dirs = (isset($extra[self::NS_EXTRA]) && isset($extra[self::NS_EXTRA]['target'])
-                    ? (is_array($extra[self::NS_EXTRA]['target'])
-                        ? $extra[self::NS_EXTRA]['target']
-                        : array(self::NS_ASSETS => $extra[self::NS_EXTRA]['target']))
+        $dirs = (isset($extra[self::NS_EXTRA]) && isset($extra[self::NS_EXTRA][$type])
+                    ? (is_array($extra[self::NS_EXTRA][$type])
+                        ? $extra[self::NS_EXTRA][$type]
+                        : array(self::NS_ASSETS => $extra[self::NS_EXTRA][$type]))
                     : array());
-
+        
         $dirs = array_filter(
             $dirs,
-            function($dir) {
+            function ($dir) {
                 return is_string($dir);
             }
         );
+        
+        return $dirs;
+    }
 
+    /**
+     * Determine assets to remove.
+     * 
+     * @param   array   $old_dirs               Initial directories.
+     * @param   array   $new_dirs               Updated directories.
+     * @return  array                           Directories to remove.
+     */
+    protected function getRemovableDirectories(array $old_dirs, array $new_dirs = array())
+    {
+        $dirs = array_filter(
+            $dirs,
+            function ($dir, $ns) {
+                return !(isset($new_dirs[$ns]) && $dir === $new_dirs[$ns]);
+            },
+            ARRAY_FILTER_USE_BOTH
+        );
+        
         return $dirs;
     }
 
@@ -115,78 +137,108 @@ class Installer
         $old_pkg = $operation->getInitialPackage();
         $new_pkg = $operation->getTargetPackage();
 
-        // remove assets that not longer required
-        $old_dirs = $this->getDirectories($old_pkg, 'source');
-        $new_dirs = $this->getDirectories($new_pkg, 'source');
+        // determine assets to remove
+        $old_dirs = $this->getDirectories('source', $old_pkg->getExtra());
+        $new_dirs = $this->getDirectories('source', $new_pkg->getExtra());
 
-        $remove_dirs = array_filter(
-            $old_dirs,
-            function($dir, $ns) use ($new_dirs, $old_pkg) {
-                if (!($return = isset($this->assets_dirs[$ns]))) {
-                    $this->log(self::LOG_WARNING, sprintf('%s: namespace not defined in root package "%s".', $old_pkg->getName(), $ns));
-                } else {
-                    $return = (array_search($dir, $new_dirs) === false);
-                }
+        $remove_dirs = $this->getRemovableDirectories($old_dirs, $new_dirs);
 
-                return $return;
-            },
-            ARRAY_FILTER_USE_BOTH
-        );
+        $this->removeAssets($event, $remove_dirs);
+        $this->installAssets($event, $new_pkg, $new_dirs);
 
-        foreach ($remove_dirs as $ns => $dir) {
-
-        }
+        return $this;
     }
 
     /**
-     * Handle assets for installed package.
+     * Handle assets for new installed package.
      */
     public function installPackage(PackageEvent $event)
     {
         $operation = $event->getOperation();
 
         $package = $operation->getPackage();
+        
+        $this->installAssets($event, $package, $this->getSourceDirectories($package->getExtra()));
+
+        return $this;
+    }
+
+    /**
+     * Uninstall assets of a package.
+     */
+    public function uninstallPackage(PackageEvent $event)
+    {
+        $operation = $event->getOperation();
+
+        $old_pkg = $operation->getInitialPackage();
+        $new_pkg = $operation->getTargetPackage();
+    }
+
+    /**
+     * Remove assets of a package.
+     * 
+     * @param   \Composer\Installer\PackageEvent    $event      Event.
+     * @param   \Composer\Package\PackageInterface  $package    Removed package.
+     * @param   array                               $dirs       Assets directories.
+     */
+    protected function removeAssets(PackageEvent $event, PackageInterface $package, array $dirs)
+    {
+        $package_path = $event->getComposer()->getInstallationManager()->getInstallPath($package);
+        $package_name = $package->getName();
+
+        foreach ($dirs as $ns => $dir) {
+            if (!isset($this->assets_dirs[$ns])) {
+                $this->log(self::LOG_WARNING, 'Namespace not defined in root package "%s".', $ns);
+            } else {
+                $source_path = $package_path . '/' . $dir;
+                $target_path = $this->root_path . '/' . $this->assets_dirs[$ns] . '/' . $package_name;
+                $target_dir = dirname($target_path);
+                
+                if (!is_dir($target_dir)) {
+                    continue;
+                }
+                
+                if (is_link($target_path)) {
+                    if (!unlink($target_path)) {
+                        $this->log(self::LOG_ERROR, 'Unable to remove link to asset "%s" -> "%s".', $source_path, $target_path);
+                    }
+                }                
+            }
+        }
     }
 
     /**
      * Install assets for a package.
+     * 
+     * @param   \Composer\Installer\PackageEvent    $event      Event.
+     * @param   \Composer\Package\PackageInterface  $package    Installed package.
+     * @param   array                               $dirs       Assets directories.
      */
-    public function install(PackageEvent $event)
+    protected function installAssets(PackageEvent $event, PackageInterface $package, array $dirs)
     {
-        $extra = $package->getExtra();
+        $package_path = $event->getComposer()->getInstallationManager()->getInstallPath($package);
+        $package_name = $package->getName();
 
-        $source_dirs = $this->getDirectories('source');
+        foreach ($dirs as $ns => $dir) {
+            $source_path = $package_path . '/' . $dir;
 
-        if (count($source_dirs) > 0) {
-            // installed/updated package has assets to install
-            $package_path = $event->getComposer()->getInstallationManager()->getInstallPath($package);
-            $package_name = $package->getName();
-
-            $source_dirs = array_filter($source_dirs, function($dir, $ns) use ($package_path, $package_name) {
-                if (!($return = isset($this->assets_dirs[$ns]))) {
-                    $this->log(self::LOG_WARNING, sprintf('%s: namespace not defined in root package "%s".', $package_name, $ns));
-                } elseif (!($return = is_dir($package_path . '/' . $dir))) {
-                    $this->log(self::LOG_WARNING, sprintf('%s: asset directory does not exist "%s".', $package_name, $dir));
-                }
-
-                return $return;
-            }, ARRAY_FILTER_USE_BOTH);
-
-            foreach ($source_dirs as $ns => $dir) {
+            if (!isset($this->assets_dirs[$ns])) {
+                $this->log(self::LOG_WARNING, 'Namespace not defined in root package "%s".', $ns);
+            } elseif (!is_dir($source_path)) {
+                $this->log(self::LOG_WARNING, 'Asset directory does not exist "%s".', $dir);
+            } else {
                 $target_path = $this->root_path . '/' . $this->assets_dirs[$ns] . '/' . $package_name;
                 $target_dir = dirname($target_path);
+                
+                $this->log(self::LOG_CUSTOM, 'Installing asset <info>%s/%s</info>', $package_name, $dir);
 
                 if (!is_dir($target_dir)) {
                     if (!mkdir($target_dir, 0777, true)) {
-                        $this->log(self::LOG_ERROR, sprintf('%s: unable to create target directory "%s".', $package_name, $target_dir));
+                        $this->log(self::LOG_ERROR, 'Unable to create target directory "%s".', $target_dir);
                         continue;
                     }
                 }
-
-                $source_path = $package_path . '/' . $dir;
-
-                $this->log(self::LOG_CUSTOM, sprintf('  - Installing asset <info>%s/%s</info>', $package_name, $dir));
-
+                
                 if (is_link($target_path)) {
                     $link_path = readlink($target_path);
 
@@ -195,25 +247,16 @@ class Installer
                     }
 
                     if (!unlink($target_path)) {
-                        $this->log(self::LOG_ERROR, '%s: unable to update link to asset "%s" -> "%s".', $package_name, $source_path, $target_path);
+                        $this->log(self::LOG_ERROR, 'Unable to update link to asset "%s" -> "%s".', $source_path, $target_path);
                         continue;
                     }
-                }
 
-                if (!symlink($source_path, $target_path)) {
-                    $this->log(self::LOG_ERROR, sprintf('%s: unable to create link to asset "%s" -> "%s".', $package_name, $source_path, $target_path));
-                }
+                    if (!symlink($source_path, $target_path)) {
+                        $this->log(self::LOG_ERROR, 'Unable to create link to asset "%s" -> "%s".', $source_path, $target_path);
+                    }
+                }                
             }
         }
-
-        return $this;
-    }
-
-    /**
-     * Uninstall assets of a package.
-     */
-    public function uninstall(PackageEvent $event)
-    {
     }
 
     /**
@@ -228,7 +271,13 @@ class Installer
                 continue;
             }
 
-            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->root_path . '/' . $dir));
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator(
+                    $this->root_path . '/' . $dir,
+                    \RecursiveDirectoryIterator::SKIP_DOTS
+                ),
+                RecursiveIteratorIterator::CHILD_FIRST
+            );
 
             foreach ($iterator as $object) {
                 if ($object->isLink()) {
@@ -236,9 +285,16 @@ class Installer
                     $link_path = readlink($target_path);
 
                     if (!file_exists($link_path)) {
-                        $this->log(self::LOG_CUSTOM, sprintf('  - Removing unresolved path <info>%s</info>', $target_path));
+                        $this->log(self::LOG_CUSTOM, 'Removing unresolved path <info>%s</info>', $target_path);
+                        
                         if (!unlink($target_path)) {
                             $this->log(self::LOG_ERROR, 'Unable to remove unresolved path "%s" -> "%s".', $link_path, $target_path);
+                        }
+                    }
+                } elseif ($object->isDir()) {
+                    if (count(glob('{,.}*', GLOB_BRACE | GLOB_NOSORT) == 0) {
+                        if (!rmdir((string)$object)) {
+                            $this->log(self::LOG_WARNING, 'Unable to remove empty directory "%s".', (string)$object);
                         }
                     }
                 }
@@ -249,20 +305,20 @@ class Installer
     /**
      * Log status messages.
      */
-    protected function log($type, $message)
+    protected function log($type, $message, ...$args = array())
     {
         switch ($type) {
             case self::LOG_INFO:
-                $this->io->write(array('<info>' . $message . '</info>'));
+                $this->io->write(array('<info>  - ' . vsprintf($message, ...$args) . '</info>'));
                 break;
             case self::LOG_WARNING:
-                $this->io->write(array('<warning>' . $message . '</warning>'));
+                $this->io->write(array('<warning>  ! ' . vsprintf($message, ...$args) . '</warning>'));
                 break;
             case self::LOG_ERROR:
-                $this->io->write(array('<error>' . $message . '</error>'));
+                $this->io->write(array('<error>  ! ' . vsprintf($message, ...$args) . '</error>'));
                 break;
             case self::LOG_CUSTOM:
-                $this->io->write(array($message));
+                $this->io->write(array('  - ' . vsprintf($message, ...$args)));
                 break;
         }
     }
