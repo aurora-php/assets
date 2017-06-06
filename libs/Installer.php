@@ -117,7 +117,7 @@ class Installer
     protected function getRemovableDirectories(array $old_dirs, array $new_dirs = array())
     {
         $dirs = array_filter(
-            $dirs,
+            $old_dirs,
             function ($dir, $ns) {
                 return !(isset($new_dirs[$ns]) && $dir === $new_dirs[$ns]);
             },
