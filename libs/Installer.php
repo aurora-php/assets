@@ -276,7 +276,7 @@ class Installer
                     $this->root_path . '/' . $dir,
                     \RecursiveDirectoryIterator::SKIP_DOTS
                 ),
-                RecursiveIteratorIterator::CHILD_FIRST
+                \RecursiveIteratorIterator::CHILD_FIRST
             );
 
             foreach ($iterator as $object) {
