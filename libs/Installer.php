@@ -292,7 +292,7 @@ class Installer
                         }
                     }
                 } elseif ($object->isDir()) {
-                    if (count(glob('{,.}*', GLOB_BRACE | GLOB_NOSORT) == 0) {
+                    if (count(glob('{,.}*', GLOB_BRACE | GLOB_NOSORT)) == 0) {
                         if (!rmdir((string)$object)) {
                             $this->log(self::LOG_WARNING, 'Unable to remove empty directory "%s".', (string)$object);
                         }
@@ -305,7 +305,7 @@ class Installer
     /**
      * Log status messages.
      */
-    protected function log($type, $message, ...$args = array())
+    protected function log($type, $message, ...$args)
     {
         switch ($type) {
             case self::LOG_INFO:
