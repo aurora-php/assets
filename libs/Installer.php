@@ -158,7 +158,7 @@ class Installer
 
         $package = $operation->getPackage();
         
-        $this->installAssets($event, $package, $this->getSourceDirectories($package->getExtra()));
+        $this->installAssets($event, $package, $this->getDirectories('source', $package->getExtra()));
 
         return $this;
     }
