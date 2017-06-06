@@ -143,7 +143,7 @@ class Installer
 
         $remove_dirs = $this->getRemovableDirectories($old_dirs, $new_dirs);
 
-        $this->removeAssets($event, $remove_dirs);
+        $this->removeAssets($event, $old_pkg, $remove_dirs);
         $this->installAssets($event, $new_pkg, $new_dirs);
 
         return $this;
