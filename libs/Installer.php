@@ -266,6 +266,16 @@ class Installer
     {
         $this->log(self::LOG_CUSTOM, '<info>Cleanup asset directories</info>');
 
+        $rmdir = function ($dir) {
+            if (count(array_diff(scandir($dir), ['.', '..'])) == 0) {
+                $this->log(self::LOG_CUSTOM, '  - Removing empty directory <info>%s</info>', $dir);
+                                        
+                if (!rmdir($dir)) {
+                    $this->log(self::LOG_WARNING, 'Unable to remove empty directory "%s".', $dir);
+                }
+            }
+        };
+
         foreach ($this->assets_dirs as $ns => $dir) {
             if (!is_dir($this->root_path . '/' . $dir)) {
                 continue;
@@ -292,15 +302,11 @@ class Installer
                         }
                     }
                 } elseif ($object->isDir()) {
-                    if (count(glob((string)$object . '/{,.}*', GLOB_BRACE | GLOB_NOSORT)) == 0) {
-                        $this->log(self::LOG_CUSTOM, '  - Removing empty directory <info>%s</info>', (string)$object);
-                                                
-                        if (!rmdir((string)$object)) {
-                            $this->log(self::LOG_WARNING, 'Unable to remove empty directory "%s".', (string)$object);
-                        }
-                    }
+                    $rmdir((string)$object);
                 }
             }
+            
+            $rmdir($dir);
         }
     }
 
