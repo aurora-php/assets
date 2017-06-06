@@ -309,16 +309,16 @@ class Installer
     {
         switch ($type) {
             case self::LOG_INFO:
-                $this->io->write(array('<info>  - ' . vsprintf($message, ...$args) . '</info>'));
+                $this->io->write(array('<info>  - ' . sprintf($message, ...$args) . '</info>'));
                 break;
             case self::LOG_WARNING:
-                $this->io->write(array('<warning>  ! ' . vsprintf($message, ...$args) . '</warning>'));
+                $this->io->write(array('<warning>  ! ' . sprintf($message, ...$args) . '</warning>'));
                 break;
             case self::LOG_ERROR:
-                $this->io->write(array('<error>  ! ' . vsprintf($message, ...$args) . '</error>'));
+                $this->io->write(array('<error>  ! ' . sprintf($message, ...$args) . '</error>'));
                 break;
             case self::LOG_CUSTOM:
-                $this->io->write(array('  - ' . vsprintf($message, ...$args)));
+                $this->io->write(array('  - ' . sprintf($message, ...$args)));
                 break;
         }
     }
