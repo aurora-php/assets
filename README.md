@@ -59,8 +59,8 @@ would be created in the main-package for the above configuration:
 ### Application configuration
 
 To make it possible to manage assets with the template compiler of the octris php framework, additional
-configuration might be required. Open the file `etc/global.php` and configure the additional paths for
-the template engine:
+configuration might be required. Open the file `etc/global.php` of your octris web project and configure
+the additional paths for the template engine:
 
 ```diff
     $tpl->addPostprocessor(
@@ -86,3 +86,8 @@ the template engine:
 ```
 
 The new assets can be accessed in the template by specifying the configured additional root paths.
+
+Example:
+
+    <script src="/vendor_js/octris/assetsdemo/foo.js"></script>
+
